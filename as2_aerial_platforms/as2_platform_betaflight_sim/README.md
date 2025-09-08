@@ -1,13 +1,13 @@
-# Betaflight SITL + AeroStack2 Integration
+# Betaflight SITL + AeroStack2 MSP Integration
 
-This package provides a complete integration between Betaflight flight controller firmware and AeroStack2 autonomous drone framework, specifically designed for deployment on Jetson computers with real Betaflight controllers.
+This package provides a complete integration between Betaflight flight controller firmware and AeroStack2 autonomous drone framework, specifically designed for deployment on Jetson computers with real Betaflight controllers using the **MSP (Multiwii Serial Protocol)** instead of MAVROS. This approach provides native Betaflight communication and works with both SITL simulation and real hardware.
 
 ## Overview
 
 This integration enables you to:
 - **Run Betaflight SITL** (Software-in-the-Loop) for simulation
 - **Bridge AeroStack2 with Betaflight** using a custom platform
-- **Use MAVROS** for MAVLink protocol communication
+- **Use MSP** for MAVLink protocol communication
 - **Simulate MSP** (Multiwii Serial Protocol) commands
 - **Deploy on real hardware** (Jetson + Betaflight FC)
 
@@ -18,9 +18,9 @@ This integration enables you to:
          ↓
 [Betaflight Platform Bridge] ← This Package
          ↓
-   [MAVROS Bridge]
+   [MSP Helper]
          ↓
-  [Betaflight SITL/FC]
+[Betaflight SITL/FC]
          ↓
 [Motors/ESCs/Simulation]
 ```
@@ -30,7 +30,7 @@ This integration enables you to:
 - Ubuntu 22.04 LTS
 - ROS2 Humble
 - AeroStack2 framework
-- MAVROS package
+- MSP package
 - Build tools (cmake, make, gcc)
 
 ## Installation
@@ -51,10 +51,10 @@ sudo apt install -y build-essential cmake git
 make TARGET=SITL
 ```
 
-### 2. Install MAVROS
+### 2. Install MSP
 
 ```bash
-sudo apt install -y ros-humble-mavros ros-humble-mavros-extras
+sudo apt install -y ros-humble-msp ros-humble-msp-extras
 sudo geographiclib-get-geoids egm96-5
 ```
 
@@ -86,7 +86,7 @@ source install/setup.bash
 ros2 launch as2_platform_betaflight_sim betaflight_simple.launch.py
 ```
 
-3. **Launch with MAVROS:**
+3. **Launch with MSP:**
 ```bash
 ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py
 ```
@@ -97,7 +97,7 @@ For Jetson + Real Betaflight Controller:
 
 1. **Connect Betaflight FC** via USB/Serial to Jetson
 
-2. **Configure MAVROS** for serial connection:
+2. **Configure MSP** for serial connection:
 ```bash
 ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py fcu_url:=/dev/ttyUSB0:115200
 ```
@@ -115,7 +115,7 @@ as2_platform_betaflight_sim/
 │   └── betaflight_sim_node.cpp          # ROS2 node wrapper
 ├── launch/
 │   ├── betaflight_simple.launch.py      # Platform only
-│   └── betaflight_sitl_full.launch.py   # Platform + MAVROS
+│   └── betaflight_sitl_full.launch.py   # Platform + MSP
 ├── config/
 │   ├── control_modes.yaml               # Supported control modes
 │   └── platform_config.yaml             # Platform configuration
@@ -136,7 +136,7 @@ The platform supports the following AeroStack2 control modes:
 ### Platform Parameters
 
 Key parameters in `platform_config.yaml`:
-- `mavros.connection_url` - MAVROS connection string
+- `msp.connection_url` - MSP connection string
 - `betaflight.msp_port` - MSP communication port
 - `betaflight.control_frequency` - Control loop frequency
 - `sensors.*` - Sensor configuration
@@ -174,7 +174,7 @@ ros2 run as2_behaviors_motion takeoff_behavior --ros-args -r __ns:=/drone0
    - Check if port 5761 is available
    - Verify build was successful
 
-2. **MAVROS connection failed:**
+2. **MSP connection failed:**
    - Ensure Betaflight SITL is running first
    - Check firewall settings for UDP port 5761
 
@@ -183,14 +183,14 @@ ros2 run as2_behaviors_motion takeoff_behavior --ros-args -r __ns:=/drone0
    - Check ROS2 environment sourcing
 
 4. **No sensor data:**
-   - Verify MAVROS topics are published
+   - Verify MSP topics are published
    - Check topic remapping in launch files
 
 ### Debug Commands
 
 ```bash
-# Check MAVROS connection
-ros2 topic echo /drone0/mavros/state
+# Check MSP connection
+ros2 topic echo /drone0/msp/state
 
 # Monitor platform status
 ros2 topic echo /drone0/platform/info
@@ -229,7 +229,7 @@ This integration was developed as a bridge between AeroStack2's high-level auton
 ### Development Notes
 
 - Platform follows AeroStack2 aerial platform interface
-- MAVROS handles MAVLink protocol translation
+- MSP handles MAVLink protocol translation
 - MSP simulation provides Betaflight-specific commands
 - Designed for easy extension and customization
 
@@ -242,7 +242,7 @@ This package follows the same license as AeroStack2. Please refer to the main Ae
 For issues related to:
 - **AeroStack2:** Check AeroStack2 documentation and GitHub issues
 - **Betaflight:** Refer to Betaflight documentation
-- **MAVROS:** See MAVROS GitHub repository
+- **MSP:** See MSP GitHub repository
 - **This integration:** Create an issue with detailed logs and configuration
 
 ---

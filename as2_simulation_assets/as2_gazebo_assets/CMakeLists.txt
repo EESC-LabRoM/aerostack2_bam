@@ -7,6 +7,13 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
+list(APPEND CMAKE_MODULE_PATH
+  "/usr/share/cmake/ignition-cmake2/cmake2"
+  "/usr/share/cmake/ignition-cmake2"
+)
+find_package(ignition-cmake2 REQUIRED)
+include(IgnCMake)
+
 # IGNITION FORTRESS --> ROS2 GALACTIC
 # find_package(gz-gazebo6 REQUIRED)
 # set(IGN_GAZEBO_VER ${gz-gazebo6_VERSION_MAJOR})

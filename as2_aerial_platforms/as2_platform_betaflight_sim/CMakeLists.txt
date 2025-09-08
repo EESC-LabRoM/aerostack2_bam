@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(as2_platform_betaflight_sim)
 
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -8,7 +13,6 @@ find_package(as2_core REQUIRED)
 find_package(as2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(mavros_msgs REQUIRED)
 
 # Include directories
 include_directories(
@@ -20,6 +24,7 @@ include_directories(
 add_executable(betaflight_sim_node
   src/betaflight_sim_node.cpp
   src/betaflight_platform.cpp
+  src/msp_helper.cpp
 )
 
 # Dependencies
@@ -29,7 +34,6 @@ ament_target_dependencies(betaflight_sim_node
   as2_msgs
   geometry_msgs
   sensor_msgs
-  mavros_msgs
 )
 
 # Install

@@ -1,19 +1,36 @@
 #pragma once
 
 #include "as2_core/aerial_platform.hpp"
+#include "as2_msgs/msg/control_mode.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
-#include "sensor_msgs/msg/imu.hpp"
-#include "mavros_msgs/msg/rc_in.hpp"
-#include "mavros_msgs/msg/attitude_target.hpp"
+#include "as2_platform_betaflight_sim/msp_helper.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include <memory>
 
 namespace betaflight_sim {
 
 class BetaflightPlatform : public as2::AerialPlatform {
 public:
   BetaflightPlatform();
-  ~BetaflightPlatform() = default;
-
-  // Override virtual methods from AerialPlatform
+  
+private:
+  bool armed_;
+  bool offboard_mode_;
+  
+  // MSP communication
+  std::unique_ptr<MSPHelper> msp_helper_;
+  std::string msp_connection_string_;
+  int msp_baud_rate_;
+  
+  // Timer for periodic operations
+  rclcpp::TimerBase::SharedPtr timer_;
+  
+  // Telemetry data
+  float current_altitude_;
+  float current_voltage_;
+  std::vector<uint16_t> current_rc_values_;
+  
+  // Core platform functions (inherited from AerialPlatform)
   void configureSensors() override;
   bool ownSendCommand() override;
   bool ownSetArmingState(bool state) override;
@@ -21,29 +38,15 @@ public:
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode& msg) override;
   void ownKillSwitch() override;
   void ownStopPlatform() override;
-
-private:
-  // Publishers for simulated MAVLink/MSP communication
-  rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr attitude_pub_;
-  rclcpp::Publisher<mavros_msgs::msg::RCIn>::SharedPtr rc_pub_;
   
-  // Subscribers for sensor simulation
-  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
-  
-  // Timer for periodic updates
-  rclcpp::TimerBase::SharedPtr timer_;
-  
-  // Internal state
-  bool armed_;
-  bool offboard_mode_;
-  
-  // Callbacks
-  void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
+  // MSP communication functions
   void timerCallback();
+  void updateTelemetry();
+  void sendRCCommands();
   
-  // MSP simulation methods
-  void simulateMSPCommands();
-  void sendAttitudeCommand();
+  // Convert AeroStack2 commands to RC values
+  void convertTwistToRC(const geometry_msgs::msg::TwistStamped& twist,
+                       uint16_t& roll, uint16_t& pitch, uint16_t& yaw, uint16_t& throttle);
 };
 
 } // namespace betaflight_sim

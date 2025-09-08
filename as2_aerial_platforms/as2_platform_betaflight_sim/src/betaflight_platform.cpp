@@ -1,40 +1,50 @@
 #include "as2_platform_betaflight_sim/betaflight_platform.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <cmath>
 
 namespace betaflight_sim {
 
 BetaflightPlatform::BetaflightPlatform() : as2::AerialPlatform() {
   armed_ = false;
   offboard_mode_ = false;
+  current_altitude_ = 0.0f;
+  current_voltage_ = 12.0f;
   
-  // Create publishers for MAVROS topics
-  attitude_pub_ = this->create_publisher<mavros_msgs::msg::AttitudeTarget>(
-    "/mavros/setpoint_raw/attitude", 10);
-    
-  rc_pub_ = this->create_publisher<mavros_msgs::msg::RCIn>(
-    "/mavros/rc/in", 10);
+  // Get MSP connection parameters from ROS parameters
+  this->declare_parameter("msp_connection", "udp:localhost:5761");
+  this->declare_parameter("msp_baud_rate", 115200);
   
-  // Subscribe to MAVROS IMU data
-  imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
-    "/mavros/imu/data", 10,
-    std::bind(&BetaflightPlatform::imuCallback, this, std::placeholders::_1));
+  msp_connection_string_ = this->get_parameter("msp_connection").as_string();
+  msp_baud_rate_ = this->get_parameter("msp_baud_rate").as_int();
   
-  // Create timer for periodic MSP simulation
+  // Initialize MSP helper
+  msp_helper_ = std::make_unique<MSPHelper>(msp_connection_string_, msp_baud_rate_);
+  
+  // Connect to Betaflight
+  if (!msp_helper_->connect()) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect to Betaflight via MSP: %s", 
+                 msp_connection_string_.c_str());
+  } else {
+    RCLCPP_INFO(this->get_logger(), "Connected to Betaflight via MSP: %s", 
+                msp_connection_string_.c_str());
+  }
+  
+  // Create timer for periodic MSP communication (50Hz)
   timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(20), // 50Hz
+    std::chrono::milliseconds(20), 
     std::bind(&BetaflightPlatform::timerCallback, this));
     
-  RCLCPP_INFO(this->get_logger(), "Betaflight SITL Platform initialized");
+  RCLCPP_INFO(this->get_logger(), "Betaflight MSP Platform initialized");
 }
 
 void BetaflightPlatform::configureSensors() {
-  // Configure platform sensors - basic setup for SITL
-  RCLCPP_INFO(this->get_logger(), "Configuring sensors for Betaflight SITL");
+  // Configure platform sensors - MSP will provide telemetry data
+  RCLCPP_INFO(this->get_logger(), "Configuring sensors for Betaflight MSP");
 }
 
 bool BetaflightPlatform::ownSendCommand() {
-  // Handle sending commands to Betaflight SITL via MAVROS
-  sendAttitudeCommand();
+  // Send commands to Betaflight via MSP
+  sendRCCommands();
   return true;
 }
 
@@ -60,70 +70,111 @@ void BetaflightPlatform::ownKillSwitch() {
   RCLCPP_WARN(this->get_logger(), "EMERGENCY KILL SWITCH ACTIVATED!");
   armed_ = false;
   offboard_mode_ = false;
+  
+  // Send neutral RC commands to stop the drone
+  if (msp_helper_ && msp_helper_->isConnected()) {
+    msp_helper_->sendRCCommand(
+      MSPHelper::RC_NEUTRAL, // Roll
+      MSPHelper::RC_NEUTRAL, // Pitch
+      MSPHelper::RC_NEUTRAL, // Yaw
+      MSPHelper::RC_MIN      // Throttle (minimum)
+    );
+  }
 }
 
 void BetaflightPlatform::ownStopPlatform() {
   RCLCPP_WARN(this->get_logger(), "EMERGENCY STOP - Platform will hover");
-  // In real implementation, this would send hover commands
-}
-
-void BetaflightPlatform::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg) {
-  // Process IMU data from MAVROS (Betaflight SITL)
-  // This would typically update internal state estimation
+  
+  // Send hover commands (neutral stick positions with current throttle)
+  if (msp_helper_ && msp_helper_->isConnected()) {
+    msp_helper_->sendRCCommand(
+      MSPHelper::RC_NEUTRAL, // Roll
+      MSPHelper::RC_NEUTRAL, // Pitch  
+      MSPHelper::RC_NEUTRAL, // Yaw
+      MSPHelper::RC_NEUTRAL  // Throttle (hover)
+    );
+  }
 }
 
 void BetaflightPlatform::timerCallback() {
-  simulateMSPCommands();
+  // Update telemetry from Betaflight
+  updateTelemetry();
 }
 
-void BetaflightPlatform::simulateMSPCommands() {
-  // Simulate MSP protocol commands that would be sent to Betaflight
-  // In real implementation, this might send RC commands or status requests
-  
-  if (armed_ && offboard_mode_) {
-    // Send periodic RC commands to maintain control
-    auto rc_msg = mavros_msgs::msg::RCIn();
-    rc_msg.header.stamp = this->now();
-    rc_msg.channels = {1500, 1500, 1500, 1500, 1000, 1000, 1000, 1000}; // Neutral values
-    rc_pub_->publish(rc_msg);
-  }
-}
-
-void BetaflightPlatform::sendAttitudeCommand() {
-  if (!armed_ || !offboard_mode_) {
+void BetaflightPlatform::updateTelemetry() {
+  if (!msp_helper_ || !msp_helper_->isConnected()) {
     return;
   }
   
-  // Get current command from AerialPlatform base class
-  auto cmd = command_twist_msg_.twist;
+  // Read altitude
+  float altitude;
+  if (msp_helper_->readAltitude(altitude)) {
+    current_altitude_ = altitude;
+  }
   
-  // Convert twist command to attitude target for Betaflight
-  auto attitude_msg = mavros_msgs::msg::AttitudeTarget();
-  attitude_msg.header.stamp = this->now();
-  attitude_msg.header.frame_id = "base_link";
+  // Read analog values (battery, etc.)
+  float voltage, current;
+  uint16_t rssi;
+  if (msp_helper_->readAnalog(voltage, current, rssi)) {
+    current_voltage_ = voltage;
+  }
   
-  // Map twist commands to attitude setpoints
-  // This is a simplified mapping - real implementation would be more sophisticated
-  attitude_msg.type_mask = mavros_msgs::msg::AttitudeTarget::IGNORE_ROLL_RATE |
-                          mavros_msgs::msg::AttitudeTarget::IGNORE_PITCH_RATE |
-                          mavros_msgs::msg::AttitudeTarget::IGNORE_YAW_RATE;
+  // Read current RC values
+  std::vector<uint16_t> rc_values;
+  if (msp_helper_->readRCValues(rc_values)) {
+    current_rc_values_ = rc_values;
+  }
+}
+
+void BetaflightPlatform::sendRCCommands() {
+  if (!msp_helper_ || !msp_helper_->isConnected() || !armed_ || !offboard_mode_) {
+    return;
+  }
   
-  // Simple mapping: linear.x -> pitch, linear.y -> roll, angular.z -> yaw, linear.z -> thrust
-  float roll_angle = -cmd.linear.y * 0.2;  // Negative for correct direction
-  float pitch_angle = cmd.linear.x * 0.2;
-  float yaw_rate = cmd.angular.z;
-  float thrust = (cmd.linear.z + 1.0) / 2.0; // Map from [-1,1] to [0,1]
+  // Convert AeroStack2 twist command to RC values
+  uint16_t roll, pitch, yaw, throttle;
+  convertTwistToRC(command_twist_msg_, roll, pitch, yaw, throttle);
   
-  // Convert to quaternion (simplified - assumes small angles)
-  attitude_msg.orientation.w = 1.0;
-  attitude_msg.orientation.x = roll_angle / 2.0;
-  attitude_msg.orientation.y = pitch_angle / 2.0;
-  attitude_msg.orientation.z = 0.0;
+  // Send RC command via MSP
+  bool success = msp_helper_->sendRCCommand(roll, pitch, yaw, throttle);
   
-  attitude_msg.body_rate.z = yaw_rate;
-  attitude_msg.thrust = thrust;
+  if (!success) {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, 
+                         "Failed to send RC command via MSP");
+  }
+}
+
+void BetaflightPlatform::convertTwistToRC(const geometry_msgs::msg::TwistStamped& twist,
+                                         uint16_t& roll, uint16_t& pitch, uint16_t& yaw, uint16_t& throttle) {
+  // Get twist command values
+  double linear_x = twist.twist.linear.x;   // Forward/backward (pitch)
+  double linear_y = twist.twist.linear.y;   // Left/right (roll) 
+  double linear_z = twist.twist.linear.z;   // Up/down (throttle)
+  double angular_z = twist.twist.angular.z; // Yaw rate
   
-  attitude_pub_->publish(attitude_msg);
+  // Convert to RC values (1000-2000 range, 1500 neutral)
+  // Scale factors can be adjusted based on desired responsiveness
+  const double scale_angle = 200.0;  // ±200 from neutral for angles
+  const double scale_throttle = 500.0; // ±500 from neutral for throttle
+  const double scale_yaw_rate = 200.0; // ±200 from neutral for yaw rate
+  
+  // Roll: negative linear_y for correct direction
+  roll = static_cast<uint16_t>(MSPHelper::RC_NEUTRAL - linear_y * scale_angle);
+  
+  // Pitch: positive linear_x for forward
+  pitch = static_cast<uint16_t>(MSPHelper::RC_NEUTRAL + linear_x * scale_angle);
+  
+  // Yaw rate: positive angular_z for clockwise
+  yaw = static_cast<uint16_t>(MSPHelper::RC_NEUTRAL + angular_z * scale_yaw_rate);
+  
+  // Throttle: linear_z range [-1,1] mapped to [1000,2000]
+  throttle = static_cast<uint16_t>(MSPHelper::RC_NEUTRAL + linear_z * scale_throttle);
+  
+  // Clamp values to valid RC range
+  roll = std::max(MSPHelper::RC_MIN, std::min(MSPHelper::RC_MAX, roll));
+  pitch = std::max(MSPHelper::RC_MIN, std::min(MSPHelper::RC_MAX, pitch));
+  yaw = std::max(MSPHelper::RC_MIN, std::min(MSPHelper::RC_MAX, yaw));
+  throttle = std::max(MSPHelper::RC_MIN, std::min(MSPHelper::RC_MAX, throttle));
 }
 
 } // namespace betaflight_sim

@@ -26,11 +26,13 @@
 # 
 #-----------------------------------------------------------------
 
-available_modes:
-  # Betaflight SITL supports limited control modes for compatibility
-  - 0b00000000 # UNSET
-  - 0b00010000 # HOVER
-  - 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 
-  - 0b00110101 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust) 
-  - 0b01000100 # SPEED with yaw SPEED in the LOCAL_FLU_FRAME
-  - 0b01000101 # SPEED with yaw SPEED in the GLOBAL_ENU_FRAME
+/**:
+  ros__parameters:
+    available_modes:
+      # Betaflight MSP supports limited control modes for compatibility
+      - 0  # 0b00000000 # UNSET
+      - 16 # 0b00010000 # HOVER
+      - 49 # 0b00110001 # ATTITUDE with yaw ANGLE ( r,p,y , Thrust) 
+      - 53 # 0b00110101 # ATTITUDE with yaw SPEED ( r,p, dy , Thrust) 
+      - 68 # 0b01000100 # SPEED with yaw SPEED in the LOCAL_FLU_FRAME
+      - 69 # 0b01000101 # SPEED with yaw SPEED in the GLOBAL_ENU_FRAME
