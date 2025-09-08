@@ -1,0 +1,49 @@
+# Betaflight SITL Platform Configuration
+betaflight_sitl:
+  # Basic platform configuration
+  platform_name: "betaflight_sitl"
+  
+  # MAVROS connection settings
+  mavros:
+    connection_url: "udp://:14540@127.0.0.1:14557"
+    system_id: 1
+    component_id: 1
+  
+  # Betaflight SITL settings
+  betaflight:
+    # MSP port (typically 5761 for SITL)
+    msp_port: 5761
+    
+    # Control loop frequency (Hz)
+    control_frequency: 50
+    
+    # RC channel mapping
+    rc_channels:
+      roll: 1
+      pitch: 2 
+      throttle: 3
+      yaw: 4
+      aux1: 5
+      aux2: 6
+      
+  # Sensor configuration
+  sensors:
+    imu:
+      enabled: true
+      frequency: 250  # Hz
+    gps:
+      enabled: true
+      frequency: 10   # Hz
+    barometer:
+      enabled: true
+      frequency: 50   # Hz
+    magnetometer:
+      enabled: true
+      frequency: 100  # Hz
+      
+  # Safety settings
+  safety:
+    max_attitude_angle: 0.5  # radians (about 30 degrees)
+    max_yaw_rate: 2.0        # rad/s
+    max_thrust: 1.0          # normalized [0,1]
+    min_thrust: 0.0          # normalized [0,1]

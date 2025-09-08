@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>as2_platform_betaflight_sim</name>
+  <version>0.1.0</version>
+  <description>AeroStack2 platform for Betaflight SITL integration</description>
+  
+  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  
+  <depend>rclcpp</depend>
+  <depend>as2_core</depend>
+  <depend>as2_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>mavros_msgs</depend>
+  
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
