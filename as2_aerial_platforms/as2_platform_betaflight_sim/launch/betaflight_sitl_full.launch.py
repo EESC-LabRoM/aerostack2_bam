@@ -46,7 +46,7 @@ def generate_launch_description():
         # Launch our Betaflight platform bridge
         Node(
             package='as2_platform_betaflight_sim',
-            executable='betaflight_sim_node',
+            executable='as2_platform_betaflight_sim_node',
             name='platform',
             namespace=LaunchConfiguration('namespace'),
             output='screen',

@@ -247,6 +247,198 @@ ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py
 ros2 run as2_behaviors_motion takeoff_behavior --ros-args -r __ns:=/drone0
 ```
 
+## Navigation Instructions via MSP
+
+### Overview
+
+**YES! You can send navigation instructions via MSP to Betaflight!** The MSP platform exposes standard AeroStack2 navigation topics that translate directly to native Betaflight commands.
+
+### Available Navigation Topics
+
+#### 🎯 Position Control
+- **Topic:** `/drone0/motion_reference/pose`
+- **Type:** `geometry_msgs/msg/PoseStamped`
+- **Use:** Send target position (x,y,z) and orientation
+
+#### 🚀 Velocity Control
+- **Topic:** `/drone0/motion_reference/twist`
+- **Type:** `geometry_msgs/msg/TwistStamped`
+- **Use:** Send target velocity (linear & angular)
+
+#### ⚡ Direct Thrust Control
+- **Topic:** `/drone0/actuator_command/thrust`
+- **Type:** `as2_msgs/msg/Thrust`
+- **Use:** Direct thrust values for each motor
+
+### Control Services
+
+#### 🔧 Arm/Disarm
+- **Service:** `/drone0/arm`
+- **Type:** `as2_msgs/srv/SetControlMode`
+
+#### 🛫 Takeoff
+- **Service:** `/drone0/takeoff`
+- **Type:** `as2_msgs/srv/Takeoff`
+
+#### 🛬 Landing
+- **Service:** `/drone0/land`
+- **Type:** `as2_msgs/srv/Land`
+
+### Sensor Data Topics (Read-Only)
+
+#### 📡 IMU Data
+- **Topic:** `/drone0/sensor_measurements/imu`
+- **Type:** `sensor_msgs/msg/Imu`
+
+#### 🗺️ Position Data
+- **Topic:** `/drone0/self_localization/pose`
+- **Type:** `geometry_msgs/msg/PoseWithCovarianceStamped`
+
+### Navigation Examples
+
+#### Complete Flight Sequence
+
+```bash
+# 1. ARM THE DRONE
+ros2 service call /drone0/arm as2_msgs/srv/SetControlMode \
+  "{control_mode: {yaw_mode: 0, control_mode: 0, reference_frame: 0}}"
+
+# 2. TAKEOFF TO 2 METERS
+ros2 service call /drone0/takeoff as2_msgs/srv/Takeoff \
+  "{takeoff_height: 2.0, takeoff_speed: 1.0}"
+
+# 3. FLY TO POSITION (x=5, y=3, z=2 meters)
+ros2 topic pub --once /drone0/motion_reference/pose geometry_msgs/msg/PoseStamped '
+{
+  "header": {
+    "stamp": {"sec": 0, "nanosec": 0},
+    "frame_id": "earth"
+  },
+  "pose": {
+    "position": {"x": 5.0, "y": 3.0, "z": 2.0},
+    "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
+  }
+}'
+
+# 4. SET FORWARD VELOCITY (2 m/s)
+ros2 topic pub --once /drone0/motion_reference/twist geometry_msgs/msg/TwistStamped '
+{
+  "header": {
+    "stamp": {"sec": 0, "nanosec": 0},
+    "frame_id": "base_link"
+  },
+  "twist": {
+    "linear": {"x": 2.0, "y": 0.0, "z": 0.0},
+    "angular": {"x": 0.0, "y": 0.0, "z": 0.0}
+  }
+}'
+
+# 5. LAND THE DRONE
+ros2 service call /drone0/land as2_msgs/srv/Land "{land_speed: 0.5}"
+
+# 6. DISARM THE DRONE
+ros2 service call /drone0/arm as2_msgs/srv/SetControlMode \
+  "{control_mode: {yaw_mode: 0, control_mode: 1, reference_frame: 0}}"
+```
+
+#### Monitor Drone State
+
+```bash
+# Monitor current position
+ros2 topic echo /drone0/self_localization/pose
+
+# Check available topics
+ros2 topic list | grep drone0
+
+# Monitor IMU data
+ros2 topic echo /drone0/sensor_measurements/imu
+```
+
+### Quick Start Navigation
+
+#### 3-Terminal Setup
+
+**Terminal 1 - Start Betaflight SITL:**
+```bash
+cd /tmp/betaflight && ./obj/betaflight_2025.12.0-beta_SITL
+```
+
+**Terminal 2 - Start MSP Platform:**
+```bash
+cd /home/nexus/aerostack2_ws
+source install/setup.bash
+ros2 launch as2_platform_betaflight_sim betaflight_simple.launch.py
+```
+
+**Terminal 3 - Send Navigation Commands:**
+```bash
+source install/setup.bash
+# Use any of the navigation commands above!
+```
+
+### Ready-to-Use Demo Scripts
+
+The package includes several demo scripts for testing navigation:
+
+```bash
+# Complete navigation reference guide
+./navigation_guide.sh
+
+# Interactive live navigation demo
+./live_navigation_demo.sh
+
+# Basic MSP platform test
+./msp_demo.sh
+
+# Gazebo integration with visualization
+./demo_gazebo.sh
+```
+
+### Debugging Navigation
+
+#### Check Message Formats
+```bash
+# Check topic message structure
+ros2 interface show geometry_msgs/msg/PoseStamped
+ros2 interface show geometry_msgs/msg/TwistStamped
+ros2 interface show as2_msgs/srv/Takeoff
+```
+
+#### Monitor Command Reception
+```bash
+# Monitor if commands are being received
+ros2 topic echo /drone0/motion_reference/pose
+ros2 topic echo /drone0/motion_reference/twist
+```
+
+#### Service Availability
+```bash
+# Check available services
+ros2 service list | grep drone0
+ros2 service type /drone0/arm
+ros2 service type /drone0/takeoff
+```
+
+### Jetson Hardware Navigation
+
+When deploying on Jetson with real Betaflight hardware:
+
+1. **Serial Connection:**
+   ```bash
+   # Update fcu_url in launch file
+   ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py fcu_url:=/dev/ttyUSB0:115200
+   ```
+
+2. **Performance Tuning:**
+   - Adjust control frequencies for real-time performance
+   - Use hardware serial ports when possible
+   - Monitor CPU usage during navigation
+
+3. **Safety Considerations:**
+   - Always test in simulation first
+   - Use manual override capability
+   - Start with low-speed navigation commands
+
 ## Troubleshooting
 
 ### Common Issues
