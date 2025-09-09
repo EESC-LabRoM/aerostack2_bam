@@ -13,6 +13,8 @@ find_package(as2_core REQUIRED)
 find_package(as2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(ros_gz_interfaces REQUIRED)
 
 # Include directories
 include_directories(
@@ -21,24 +23,26 @@ include_directories(
 )
 
 # Create executable
-add_executable(betaflight_sim_node
+add_executable(as2_platform_betaflight_sim_node
   src/betaflight_sim_node.cpp
   src/betaflight_platform.cpp
   src/msp_helper.cpp
 )
 
 # Dependencies
-ament_target_dependencies(betaflight_sim_node
+ament_target_dependencies(as2_platform_betaflight_sim_node
   rclcpp
   as2_core
   as2_msgs
   geometry_msgs
   sensor_msgs
+  nav_msgs
+  ros_gz_interfaces
 )
 
 # Install
 install(TARGETS
-  betaflight_sim_node
+  as2_platform_betaflight_sim_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -46,6 +50,13 @@ install(DIRECTORY
   launch
   config
   DESTINATION share/${PROJECT_NAME}
+)
+
+# Install Python scripts
+install(PROGRAMS
+  scripts/betaflight_gazebo_tf_bridge.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME betaflight_gazebo_tf_bridge
 )
 
 ament_package()

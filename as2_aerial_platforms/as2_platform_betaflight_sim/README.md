@@ -91,6 +91,73 @@ ros2 launch as2_platform_betaflight_sim betaflight_simple.launch.py
 ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py
 ```
 
+### Gazebo Integration (3D Visualization)
+
+For full 3D visualization combining Betaflight SITL with Gazebo:
+
+1. **Quick Start (Easiest):**
+```bash
+# Run the automated demo script
+cd /home/nexus/aerostack2_ws/src/aerostack2/as2_aerial_platforms/as2_platform_betaflight_sim
+./quick_demo.sh
+```
+
+2. **Manual Setup:**
+```bash
+# Terminal 1: Start Betaflight SITL
+cd /tmp/betaflight
+./obj/betaflight_2025.12.0-beta_SITL
+
+# Terminal 2: Start Gazebo + MSP Platform
+cd /home/nexus/aerostack2_ws
+source install/setup.bash
+ros2 launch as2_platform_betaflight_sim betaflight_gazebo_launch.py headless:=true
+```
+
+3. **With GUI (if display available):**
+```bash
+ros2 launch as2_platform_betaflight_sim betaflight_gazebo_launch.py headless:=false
+```
+
+4. **Custom Configuration:**
+```bash
+# Custom Betaflight connection
+ros2 launch as2_platform_betaflight_sim betaflight_gazebo_launch.py \
+    betaflight_host:=192.168.1.100 \
+    betaflight_port:=5761 \
+    namespace:=my_drone
+```
+
+### Gazebo Configuration
+
+The Gazebo integration provides:
+- **3D Visualization** of drone movement
+- **Sensor Simulation** (cameras, lidar, GPS, IMU)
+- **World Physics** and collision detection
+- **Optional Position Sync** with Betaflight SITL
+
+Configure your Gazebo simulation in `config/gazebo_simulation.json`:
+```json
+{
+    "world_name": "empty",
+    "drones": [
+        {
+            "model_type": "quadrotor_base",
+            "model_name": "betaflight_drone",
+            "xyz": [0.0, 0.0, 0.2],
+            "rpy": [0, 0, 1.57],
+            "payload": [
+                {
+                    "model_name": "front_camera",
+                    "model_type": "hd_camera",
+                    "xyz": [0.1, 0.0, 0.0]
+                }
+            ]
+        }
+    ]
+}
+```
+
 ### Real Hardware Deployment
 
 For Jetson + Real Betaflight Controller:

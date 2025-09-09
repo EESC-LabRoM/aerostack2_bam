@@ -1,0 +1,27 @@
+{
+    "world_name": "empty",
+    "drones": [
+        {
+            "model_type": "quadrotor_base",
+            "model_name": "betaflight_drone",
+            "xyz": [0.0, 0.0, 0.2],
+            "rpy": [0, 0, 1.57],
+            "flight_time": 300,
+            "payload": [
+                {
+                    "model_name": "front_camera",
+                    "model_type": "hd_camera",
+                    "xyz": [0.1, 0.0, 0.0],
+                    "rpy": [0.0, 0.0, 0.0]
+                },
+                {
+                    "model_name": "gps_sensor",
+                    "model_type": "gps",
+                    "xyz": [0.0, 0.0, 0.08],
+                    "rpy": [0.0, 0.0, 0.0]
+                }
+            ]
+        }
+    ],
+    "objects": []
+}

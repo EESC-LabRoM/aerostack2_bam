@@ -1,0 +1,51 @@
+/**:
+  ros__parameters:
+    # MSP Connection Configuration
+    msp_connection_string: "udp:localhost:5761"
+    msp_timeout_ms: 1000
+    
+    # Betaflight Platform Configuration
+    flight_stack: "betaflight"
+    mass: 1.5  # kg
+    max_thrust: 15.0  # N
+    
+    # Control Configuration
+    control_frequency: 50.0  # Hz
+    cmd_freq: 30.0  # Hz
+    info_freq: 1.0  # Hz
+    
+    # MSP Command Configuration
+    msp_override_channels_mask: 47  # Binary: 101111 (channels 0,1,2,3,5)
+    
+    # RC Channel Mapping
+    rc_channels:
+      roll: 0      # Channel 1 (0-indexed)
+      pitch: 1     # Channel 2
+      throttle: 2  # Channel 3
+      yaw: 3       # Channel 4
+      arm: 4       # Channel 5
+      mode: 5      # Channel 6
+    
+    # RC Value Ranges
+    rc_min: 1000
+    rc_max: 2000
+    rc_mid: 1500
+    
+    # Sensor Configuration
+    sensors:
+      imu:
+        frequency: 100.0
+      gps:
+        frequency: 10.0
+      battery:
+        frequency: 1.0
+    
+    # Safety Configuration
+    failsafe:
+      enabled: true
+      timeout_ms: 5000
+    
+    # Debug Configuration
+    debug:
+      enabled: false
+      msp_verbose: false
