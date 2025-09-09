@@ -71,62 +71,76 @@ colcon build --packages-select as2_platform_betaflight_sim
 
 ## Usage
 
-### Simulation Mode (SITL)
+### MSP Platform Integration (✅ WORKING)
 
-1. **Start Betaflight SITL:**
+**Core functionality for navigation commands via Jetson to Betaflight:**
+
+1. **Quick Demo (Recommended):**
 ```bash
-cd /tmp/betaflight
-./obj/betaflight_2025.12.0-beta_SITL
-```
-
-2. **Launch Platform Only:**
-```bash
-cd /path/to/aerostack2_ws
-source install/setup.bash
-ros2 launch as2_platform_betaflight_sim betaflight_simple.launch.py
-```
-
-3. **Launch with MSP:**
-```bash
-ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py
-```
-
-### Gazebo Integration (3D Visualization)
-
-For full 3D visualization combining Betaflight SITL with Gazebo:
-
-1. **Quick Start (Easiest):**
-```bash
-# Run the automated demo script
+# Run the MSP platform demo
 cd /home/nexus/aerostack2_ws/src/aerostack2/as2_aerial_platforms/as2_platform_betaflight_sim
-./quick_demo.sh
+./msp_demo.sh
 ```
 
-2. **Manual Setup:**
+2. **Test Navigation Commands:**
+```bash
+# In another terminal, test navigation capabilities
+./test_navigation.sh
+```
+
+3. **Manual Setup:**
 ```bash
 # Terminal 1: Start Betaflight SITL
 cd /tmp/betaflight
 ./obj/betaflight_2025.12.0-beta_SITL
 
-# Terminal 2: Start Gazebo + MSP Platform
+# Terminal 2: Start MSP Platform
 cd /home/nexus/aerostack2_ws
 source install/setup.bash
+ros2 launch as2_platform_betaflight_sim betaflight_sitl_full.launch.py
+```
+
+### Navigation Command Examples
+
+Once the platform is running, you can send navigation commands:
+
+```bash
+# ARM the drone
+ros2 service call /drone0/platform/set_arming_state std_srvs/srv/SetBool '{data: true}'
+
+# Send velocity commands (forward 1 m/s)
+ros2 topic pub /drone0/motion_reference_handlers/speed_motion geometry_msgs/msg/TwistStamped "
+header:
+  frame_id: 'base_link'
+twist:
+  linear: {x: 1.0, y: 0.0, z: 0.0}
+  angular: {z: 0.0}"
+
+# Stop motion
+ros2 topic pub /drone0/motion_reference_handlers/speed_motion geometry_msgs/msg/TwistStamped "
+header:
+  frame_id: 'base_link'
+twist:
+  linear: {x: 0.0, y: 0.0, z: 0.0}
+  angular: {z: 0.0}"
+```
+
+### Gazebo Integration (🔧 OPTIONAL)
+
+**Note:** Gazebo integration is available but may require additional setup depending on your Gazebo version.
+
+The MSP platform works independently of Gazebo - you can send navigation commands without visualization.
+
+For Gazebo integration:
+```bash
+# Check your Gazebo version
+ign gazebo --version
+
+# If you have Ignition Gazebo 6.x, try:
 ros2 launch as2_platform_betaflight_sim betaflight_gazebo_launch.py headless:=true
 ```
 
-3. **With GUI (if display available):**
-```bash
-ros2 launch as2_platform_betaflight_sim betaflight_gazebo_launch.py headless:=false
-```
-
-4. **Custom Configuration:**
-```bash
-# Custom Betaflight connection
-ros2 launch as2_platform_betaflight_sim betaflight_gazebo_launch.py \
-    betaflight_host:=192.168.1.100 \
-    betaflight_port:=5761 \
-    namespace:=my_drone
-```
+**Important:** The core navigation functionality works perfectly without Gazebo!
 
 ### Gazebo Configuration
 
